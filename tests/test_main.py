@@ -1,9 +1,9 @@
 import pytest
 from httpx import AsyncClient
 from fastapi.testclient import TestClient
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
-from app import app  # replace with the actual name of your main file, e.g., `from main import app`
+from app.app import app  # replace with the actual name of your main file, e.g., `from main import app`
 
 client = TestClient(app)
 

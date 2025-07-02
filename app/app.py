@@ -7,7 +7,12 @@ from datetime import datetime, timedelta
 import statistics
 import torch
 import httpx
-from helper import (reverse_geocode, summarize_weather, build_weather_prompt, get_weather_data)
+from .helper import (
+    reverse_geocode,
+    summarize_weather,
+    build_weather_prompt,
+    get_weather_data,
+)
 app = FastAPI(title="Code QA Assistant")
 
 @app.on_event("startup")
@@ -23,8 +28,8 @@ def load_model_once():
 
     print(f"google/flan-t5-base")
     from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
-    weather_tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-base")
-    weather_model = AutoModelForSeq2SeqLM.from_pretrained("google/flan-t5-base")
+    weather_tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-large")
+    weather_model = AutoModelForSeq2SeqLM.from_pretrained("google/flan-t5-large")
 
     print("loading starcoder")
     code_tokenizer = AutoTokenizer.from_pretrained("bigcode/starcoder2-3b")
@@ -100,11 +105,12 @@ async def weather_suggestion():
 
         # 🔮 Generate suggestion using the same model
         inputs = weather_tokenizer(prompt, return_tensors="pt").to(weather_model.device)
-        output = weather_model.generate(**inputs, max_new_tokens=50, temperature=0.7, pad_token_id=weather_tokenizer.eos_token_id, eos_token_id=weather_tokenizer.eos_token_id, no_repeat_ngram_size=3)
+        output = weather_model.generate(**inputs, max_new_tokens=128, pad_token_id=weather_tokenizer.eos_token_id,
+                                        eos_token_id=weather_tokenizer.eos_token_id, no_repeat_ngram_size=3)
         full_text = weather_tokenizer.decode(output[0], skip_special_tokens=True)
 
-        # Extract only the generated suggestion (remove prompt part)
-        suggestion = full_text[len(prompt):].strip()
+        # # Extract only the generated suggestion (remove prompt part)
+        # suggestion = full_text[len(prompt):].strip()
 
         return {
             "location": location_name,
@@ -113,7 +119,7 @@ async def weather_suggestion():
             "uv_index": uv,
             "precipitation": rain,
             "wind_speed": wind,
-            "suggestion": suggestion
+            "suggestion": full_text
         }
 
     except Exception as e:
@@ -146,7 +152,8 @@ async def weather_suggestion():
             max_new_tokens=100,
             temperature=0.7,
             pad_token_id=weather_tokenizer.eos_token_id,
-            eos_token_id=weather_tokenizer.eos_token_id
+            eos_token_id=weather_tokenizer.eos_token_id,
+            no_repeat_ngram_size=3
         )
 
         suggestion = weather_tokenizer.decode(outputs[0], skip_special_tokens=True).strip()

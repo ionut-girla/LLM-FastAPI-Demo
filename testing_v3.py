@@ -1,11 +1,4 @@
-from fastapi import FastAPI, HTTPException, Query
-from pydantic import BaseModel
-from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
-from datetime import datetime, timedelta
-import statistics
-import torch
-import httpx
-from helper import (reverse_geocode, summarize_weather, build_weather_prompt, get_weather_data)
+from app.helper import (get_weather_data)
 
 
 lat = 44.4268
