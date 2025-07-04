@@ -24,7 +24,7 @@ uv = current.get("uv_index")
 rain = current.get("precipitation")
 wind = current.get("wind_speed_10m")
 
-# 🔧 Build natural language prompt
+# Build natural language prompt
 prompt = (
     f"You are a helpful assistant that gives daily advice based on the weather forecast. The weather forecast for today is:\n"
     f"- Temperature: {temp} degrees Celsius\n"
@@ -37,7 +37,7 @@ prompt = (
 )
 
 
-# 🔮 Generate suggestion using the same model
+# Generate suggestion using the same model
 inputs = weather_tokenizer(prompt, return_tensors="pt").to(weather_model.device)
 output = weather_model.generate(**inputs, max_new_tokens=128, pad_token_id=weather_tokenizer.eos_token_id, eos_token_id=weather_tokenizer.eos_token_id, no_repeat_ngram_size=3)
 full_text = weather_tokenizer.decode(output[0], skip_special_tokens=True)

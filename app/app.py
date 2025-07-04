@@ -36,9 +36,6 @@ def load_model_once():
 async def ask_question(q: Question):
     try:
         prompt = f"### Question:\n{q.question}\n\n### Answer:\n"
-        # to use 4bit use `load_in_4bit=True` instead
-        # quantization_config = BitsAndBytesConfig(load_in_8bit=True)
-
         inputs = code_tokenizer(prompt, return_tensors="pt").to(code_model.device)
 
         # Fix pad_token_id and attention_mask
@@ -89,14 +86,11 @@ async def weather_suggestion():
             f"Based on this forecast, suggest what someone should wear, if they should wear sunscreen and what activities they could do (like walking, cycling, swimming)."
         )
         
-        # 🔮 Generate suggestion using the same model
+        # Generate suggestion using the same model
         inputs = weather_tokenizer(question.question, return_tensors="pt").to(weather_model.device)
         output = weather_model.generate(**inputs, max_new_tokens=128, pad_token_id=weather_tokenizer.eos_token_id,
                                         eos_token_id=weather_tokenizer.eos_token_id, no_repeat_ngram_size=3)
         local_model_response = weather_tokenizer.decode(output[0], skip_special_tokens=True)
-
-        # # Extract only the generated suggestion (remove prompt part)
-        # suggestion = full_text[len(prompt):].strip()
 
         api_model_response = get_response_from_api(question)
 
@@ -129,12 +123,12 @@ async def weather_suggestion():
             "hourly=temperature_2m,relative_humidity_2m,uv_index&"
             "timezone=auto"
         )
-        # print(weather_data)
+
         # 2. Summarize data
         today, tomorrow = summarize_weather(weather_data)
         question = build_weather_prompt(today, tomorrow)
 
-        # 🔮 Generate suggestion using the same model
+        # Generate suggestion using the same model
         inputs = weather_tokenizer(question.question, return_tensors="pt").to(weather_model.device)
         outputs = weather_model.generate(
             **inputs,

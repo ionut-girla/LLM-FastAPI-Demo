@@ -26,6 +26,3 @@ class ResponseModel(BaseModel):
         if self.choices:
             return self.choices[0].message.cleaned_content
         return None
-    # def extract_answer(self) -> str:
-    #     # Safely get the content of the first message
-    #     return self.choices[0].message.content if self.choices else ""

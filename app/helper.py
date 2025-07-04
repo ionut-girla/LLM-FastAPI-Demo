@@ -13,18 +13,6 @@ def get_weather_data(weather_url):
         res = client.get(weather_url)
         return res.json()
 
-
-# def build_weather_prompt(today, tomorrow):
-#     return f"""You are a helpful assistant that gives daily advice based on the weather forecast.
-#
-# Tomorrow:
-# - Max temp: {tomorrow['max_temp']} degrees Celsius
-# - Avg humidity: {tomorrow['avg_humidity']}%
-# - Max UV index: {tomorrow['max_uv']}
-#
-# Based on this forecast, suggest what someone should wear, if they should wear sunscreen and what activities they could do (like walking, cycling, swimming)."""
-
-
 def build_weather_prompt(today, tomorrow) -> Question:
     return Question(question=f"""
         You are a helpful assistant that gives daily advice based on the weather forecast for Bucharest.

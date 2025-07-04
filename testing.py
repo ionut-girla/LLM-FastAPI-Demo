@@ -26,7 +26,7 @@ weather_data = get_weather_data(
 today, tomorrow = summarize_weather(weather_data)
 prompt = build_weather_prompt(today, tomorrow)
 
-# 🔮 Generate suggestion using the same model
+# Generate suggestion using the same model
 inputs = weather_tokenizer(prompt, return_tensors="pt").to(weather_model.device)
 outputs = weather_model.generate(
             **inputs,
