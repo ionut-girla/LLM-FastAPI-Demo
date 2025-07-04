@@ -79,8 +79,7 @@ async def weather_suggestion():
         rain = current.get("precipitation")
         wind = current.get("wind_speed_10m")
 
-        question = Question(
-            f"You are a helpful assistant that gives daily advice based on the weather forecast. The weather forecast for today is:\n"
+        question = Question(question=f"You are a helpful assistant that gives daily advice based on the weather forecast. The weather forecast for today is:\n"
             f"- Temperature: {temp} degrees Celsius\n"
             f"- Humidity: {humidity}%\n"
             f"- UV Index: {uv}\n"

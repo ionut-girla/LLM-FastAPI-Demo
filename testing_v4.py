@@ -1,7 +1,7 @@
 import requests
 import json
 import yaml
-
+from app.models import ResponseModel
 
 
 def load_yaml_data(filename):
@@ -34,4 +34,13 @@ response = requests.post(
     
   })
 )
-print(response)
+print(response.text)
+
+cleaned_json_str = response.text.strip()
+parsed = json.loads(cleaned_json_str)
+
+# Use the Pydantic model
+response_obj = ResponseModel(**parsed)
+answer = response_obj.extract_answer()
+
+print(answer)

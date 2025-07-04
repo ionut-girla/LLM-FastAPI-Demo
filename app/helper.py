@@ -2,11 +2,11 @@ from datetime import datetime, timedelta
 import statistics
 
 import yaml
-from app.models import Question
+from app.models import Question, ResponseModel
 import httpx
 import requests
 import json
-
+import re
 
 def get_weather_data(weather_url):
     with httpx.Client() as client:
@@ -26,7 +26,7 @@ def get_weather_data(weather_url):
 
 
 def build_weather_prompt(today, tomorrow) -> Question:
-    return Question(f"""
+    return Question(question=f"""
         You are a helpful assistant that gives daily advice based on the weather forecast for Bucharest.
 
         Tomorrow's forecast:
@@ -102,7 +102,11 @@ def load_yaml_data(filename):
     except OSError:
         print("err")
         return {}
-    
+
+def limit_to_3_sentences(text: str) -> str:
+    sentences = re.split(r'(?<=[.!?])\s+', text.strip())
+    return ' '.join(sentences[:3])
+
 def get_response_from_api(q: Question):
     api_key = load_yaml_data("config.yaml").get("api_key")
     response = requests.post(
@@ -116,10 +120,18 @@ def get_response_from_api(q: Question):
                 "messages": [
                 {
                     "role": "user",
-                    "content": f"{q.question}"
+                    "content": f"Respond in at most 3 sentences to the following query {q.question}"
                 }
                 ],
                 
             })
             )
-    return response.json
+
+    cleaned_json_str = response.text.strip()
+    parsed = json.loads(cleaned_json_str)
+
+    # Use the Pydantic model
+    response_obj = ResponseModel(**parsed)
+    answer = response_obj.final_answer
+
+    return answer
