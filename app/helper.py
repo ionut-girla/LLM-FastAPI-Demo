@@ -1,6 +1,11 @@
 from datetime import datetime, timedelta
 import statistics
+
+import yaml
+from app.models import Question
 import httpx
+import requests
+import json
 
 
 def get_weather_data(weather_url):
@@ -20,23 +25,23 @@ def get_weather_data(weather_url):
 # Based on this forecast, suggest what someone should wear, if they should wear sunscreen and what activities they could do (like walking, cycling, swimming)."""
 
 
-def build_weather_prompt(today, tomorrow):
-    return f"""
-You are a helpful assistant that gives daily advice based on the weather forecast for Bucharest.
+def build_weather_prompt(today, tomorrow) -> Question:
+    return Question(f"""
+        You are a helpful assistant that gives daily advice based on the weather forecast for Bucharest.
 
-Tomorrow's forecast:
-- Max temperature: {tomorrow['max_temp']} degrees Celsius
-- Average humidity: {tomorrow['avg_humidity']}%
-- Max UV index: {tomorrow['max_uv']}
+        Tomorrow's forecast:
+        - Max temperature: {tomorrow['max_temp']} degrees Celsius
+        - Average humidity: {tomorrow['avg_humidity']}%
+        - Max UV index: {tomorrow['max_uv']}
 
-Guidelines you must *use* to form your advice:
-- If temperature > 30°C: Recommend light, breathable clothes and staying hydrated.
-- If UV index ≥ 6: Recommend sunscreen and a hat.
-- If humidity > 20%: Recommend carrying an umbrella.
-- If wind speed > 20 km/h: Warn about strong winds.
+        Guidelines you must *use* to form your advice:
+        - If temperature > 30°C: Recommend light, breathable clothes and staying hydrated.
+        - If UV index ≥ 6: Recommend sunscreen and a hat.
+        - If humidity > 20%: Recommend carrying an umbrella.
+        - If wind speed > 20 km/h: Warn about strong winds.
 
-**Important:** Do NOT repeat or quote these guidelines. Instead, based on them and the forecast above, write a friendly suggestion on what to wear and activities to do or avoid tomorrow for someone else. Keep your response short and natural (maximum 3 sentences).
-"""
+        **Important:** Do NOT repeat or quote these guidelines. Instead, based on them and the forecast above, write a friendly suggestion on what to wear and activities to do or avoid tomorrow for someone else. Keep your response short and natural (maximum 3 sentences).
+        """)
 
 def summarize_weather(data):
     hourly = data["hourly"]
@@ -85,3 +90,36 @@ async def reverse_geocode(lat: float, lon: float) -> str:
         response = await client.get(url, headers=headers)
         data = response.json()
         return data.get("display_name", "Unknown location")
+
+def load_yaml_data(filename):
+    """
+    Load Yaml data from a file
+    """
+    try:
+        with open(filename, encoding="utf8") as conf:
+            data = yaml.safe_load(conf)
+            return data
+    except OSError:
+        print("err")
+        return {}
+    
+def get_response_from_api(q: Question):
+    api_key = load_yaml_data("config.yaml").get("api_key")
+    response = requests.post(
+            url="https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            data=json.dumps({
+                "model": "moonshotai/kimi-dev-72b:free",
+                "messages": [
+                {
+                    "role": "user",
+                    "content": f"{q.question}"
+                }
+                ],
+                
+            })
+            )
+    return response.json

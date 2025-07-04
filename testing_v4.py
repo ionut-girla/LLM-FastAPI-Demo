@@ -28,7 +28,7 @@ response = requests.post(
     "messages": [
       {
         "role": "user",
-        "content": "What is the meaning of life?"
+        "content": f"What is the meaning of life?"
       }
     ],
     

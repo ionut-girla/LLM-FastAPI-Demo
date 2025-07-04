@@ -1,9 +1,9 @@
-fastapi~=0.115.14
+fastapi
 uvicorn
-transformers~=4.54.0.dev0
-torch~=2.7.1+cu118
-httpx~=0.28.1
+transformers
+torch
+httpx
 
 
-pydantic~=2.11.7
-pytest~=8.4.1
+pydantic
+pytest
