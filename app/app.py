@@ -1,8 +1,9 @@
 # filename: app.py
+import json
 
 from app.models import Question
 from fastapi import FastAPI, HTTPException
-from transformers import AutoTokenizer, AutoModelForCausalLM, AutoModelForSeq2SeqLM
+from transformers import AutoTokenizer, AutoModelForCausalLM, AutoModelForSeq2SeqLM, BitsAndBytesConfig
 import torch
 from .helper import (
     get_response_from_api,
@@ -12,6 +13,8 @@ from .helper import (
     build_weather_prompt,
     get_weather_data,
 )
+from .logger import (log_ask, log_weather)
+from pydantic import BaseModel
 app = FastAPI(title="Code QA Assistant")
 
 api_key = load_yaml_data("config.yaml").get("api_key")
@@ -25,12 +28,24 @@ def load_model_once():
     weather_tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-large")
     weather_model = AutoModelForSeq2SeqLM.from_pretrained("google/flan-t5-large")
 
+    bnb_config = BitsAndBytesConfig(
+        load_in_4bit=True,  # Use 4-bit quantization
+        bnb_4bit_compute_dtype="float16",  # Computation in float16 for speed/memory
+        bnb_4bit_use_double_quant=True,  # Optional: better compression
+        bnb_4bit_quant_type="nf4"  # NormalFloat 4, better performance
+    )
+
+
     print("loading starcoder")
     code_tokenizer = AutoTokenizer.from_pretrained("bigcode/starcoder2-3b")
     code_tokenizer.pad_token = code_tokenizer.eos_token
-    code_model = AutoModelForCausalLM.from_pretrained("bigcode/starcoder2-3b")
+    code_model = AutoModelForCausalLM.from_pretrained("bigcode/starcoder2-3b", quantization_config=bnb_config,)
 
 
+
+
+class FinalAnswer(BaseModel):
+    final_answer: str
 
 @app.post("/ask")
 async def ask_question(q: Question):
@@ -50,8 +65,9 @@ async def ask_question(q: Question):
         )
 
         answer = code_tokenizer.decode(output[0], skip_special_tokens=True)
-        final_answer = answer.split("### Answer:")[-1].strip()
-        return {"answer": final_answer}
+        final_answer = answer.split("### Answer:")[-1].strip().split("### Question:")[-2].strip()[3:-3]
+        await log_ask(q.question, final_answer)
+        return FinalAnswer(final_answer=final_answer)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -93,8 +109,7 @@ async def weather_suggestion():
         local_model_response = weather_tokenizer.decode(output[0], skip_special_tokens=True)
 
         api_model_response = get_response_from_api(question)
-
-        return {
+        response = {
             "location": location_name,
             "temperature": temp,
             "humidity": humidity,
@@ -104,6 +119,8 @@ async def weather_suggestion():
             "suggestion_local_model": local_model_response,
             "suggestion_from_api_call": api_model_response
         }
+        await log_weather(response, day="today")
+        return response
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Weather model error: {str(e)}")
@@ -141,8 +158,7 @@ async def weather_suggestion():
 
         suggestion = weather_tokenizer.decode(outputs[0], skip_special_tokens=True).strip()
         api_model_response = get_response_from_api(question)
-
-        return {
+        response = {
             "location": location_name,
             "summary": {
                 "tomorrow": tomorrow
@@ -150,6 +166,10 @@ async def weather_suggestion():
             "suggestion_from_local_model": suggestion,
             "suggestion_from_api_call": api_model_response
         }
+        print(" before log")
+        await log_weather(response, day="tomorrow")
+        print("after log")
+        return response
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
